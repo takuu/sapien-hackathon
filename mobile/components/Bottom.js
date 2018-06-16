@@ -17,7 +17,12 @@ class Bottom extends Component {
             <Text style={styles.button}>ADD GLUCOSE</Text>
           </View>
         </TouchableOpacity>
-        <TouchableOpacity title="START A CALL">
+        <TouchableOpacity
+          title="START A CALL"
+          onPress={() => {
+            this.props.onJoin();
+          }}
+        >
           <View style={styles.buttonContainer}>
             <Text style={styles.button}>START A CALL</Text>
           </View>

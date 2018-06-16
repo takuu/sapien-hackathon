@@ -1,19 +1,23 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-    <meta name="theme-color" content="#000000">
-    <!--
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <meta name="theme-color" content="#000000">
+  <!--
       manifest.json provides metadata used when your web app is added to the
       homescreen on Android. See https://developers.google.com/web/fundamentals/engage-and-retain/web-app-manifest/
     -->
-    <link rel="manifest" href="%PUBLIC_URL%/manifest.json">
-    <link rel="shortcut icon" href="%PUBLIC_URL%/favicon.ico">
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,400,500">
-    <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
-    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
-    <!--
+  <link rel="manifest" href="%PUBLIC_URL%/manifest.json">
+  <link rel="shortcut icon" href="%PUBLIC_URL%/favicon.ico">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,400,500">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+  <script src="agora.js"></script>
+  <script src="jquery.js"></script>
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm"
+    crossorigin="anonymous">
+  <!--
       Notice the use of %PUBLIC_URL% in the tags above.
       It will be replaced with the URL of the `public` folder during the build.
       Only files inside the `public` folder can be referenced from the HTML.
@@ -22,14 +26,18 @@
       work correctly both with client-side routing and a non-root public URL.
       Learn how to configure a non-root public URL by running `npm run build`.
     -->
-    <title>React App</title>
-  </head>
-  <body>
-    <noscript>
-      You need to enable JavaScript to run this app.
-    </noscript>
-    <div id="root"></div>
-    <!--
+  <title>React App</title>
+</head>
+
+<body>
+
+
+
+  <noscript>
+    You need to enable JavaScript to run this app.
+  </noscript>
+  <div id="root"></div>
+  <!--
       This HTML file is a template.
       If you open it directly in the browser, you will see an empty page.
 
@@ -39,5 +47,208 @@
       To begin the development, run `npm start` or `yarn start`.
       To create a production bundle, use `npm run build` or `yarn build`.
     -->
-  </body>
+  <div id="div_device" class="panel panel-default">
+    <div class="select">
+      <label for="audioSource">Audio source: </label>
+      <select id="audioSource"></select>
+    </div>
+    <div class="select">
+      <label for="videoSource">Video source: </label>
+      <select id="videoSource"></select>
+    </div>
+  </div>
+
+  <div id="div_join" class="panel panel-default">
+    <div class="panel-body">
+      Key:
+      <input id="key" type="hidden" value="2def8f3b492c4b74a73eb592c4ea039e" size="36"></input>
+      Channel:
+      <input id="channel" type="hidden" value="1000" size="4"></input>
+      Host:
+      <input id="video" type="checkbox" checked></input>
+      <button id="join" class="btn btn-primary" onclick="join()">Join</button>
+      <button id="leave" class="btn btn-primary" onclick="leave()">Leave</button>
+      <button id="publish" class="btn btn-primary" onclick="publish()">Publish</button>
+      <button id="unpublish" class="btn btn-primary" onclick="unpublish()">Unpublish</button>
+    </div>
+  </div>
+  <div id="video" style="margin:0 auto;position:fixed;top:0;left:40%">
+    <div id="agora_local" style="float:right;width:210px;height:147px;display:inline-block;"></div>
+  </div>
+  <script language="javascript">
+
+    if (!AgoraRTC.checkSystemRequirements()) {
+      alert("browser is no support webRTC");
+    }
+
+    /* select Log type */
+    // AgoraRTC.Logger.setLogLevel(AgoraRTC.Logger.NONE);
+    // AgoraRTC.Logger.setLogLevel(AgoraRTC.Logger.ERROR);
+    // AgoraRTC.Logger.setLogLevel(AgoraRTC.Logger.WARNING);
+    // AgoraRTC.Logger.setLogLevel(AgoraRTC.Logger.INFO);  
+    // AgoraRTC.Logger.setLogLevel(AgoraRTC.Logger.DEBUG);
+
+    /* simulated data to proof setLogLevel() */
+    AgoraRTC.Logger.error('this is error');
+    AgoraRTC.Logger.warning('this is warning');
+    AgoraRTC.Logger.info('this is info');
+    AgoraRTC.Logger.debug('this is debug');
+
+    var client, localStream, camera, microphone;
+
+    var audioSelect = document.querySelector('select#audioSource');
+    var videoSelect = document.querySelector('select#videoSource');
+
+    function join() {
+      document.getElementById("join").disabled = true;
+      document.getElementById("video").disabled = true;
+      var channel_key = null;
+
+      console.log("Init AgoraRTC client with vendor key: " + key.value);
+      client = AgoraRTC.createClient({ mode: 'interop' });
+      client.init(key.value, function () {
+        console.log("AgoraRTC client initialized");
+        client.join(channel_key, channel.value, null, function (uid) {
+          console.log("User " + uid + " join channel successfully");
+
+          if (document.getElementById("video").checked) {
+            camera = videoSource.value;
+            microphone = audioSource.value;
+            localStream = AgoraRTC.createStream({ streamID: uid, audio: true, cameraId: camera, microphoneId: microphone, video: document.getElementById("video").checked, screen: false });
+            //localStream = AgoraRTC.createStream({streamID: uid, audio: false, cameraId: camera, microphoneId: microphone, video: false, screen: true, extensionId: 'minllpmhdgpndnkomcoccfekfegnlikg'});
+            if (document.getElementById("video").checked) {
+              localStream.setVideoProfile('720p_3');
+
+            }
+
+            // The user has granted access to the camera and mic.
+            localStream.on("accessAllowed", function () {
+              console.log("accessAllowed");
+            });
+
+            // The user has denied access to the camera and mic.
+            localStream.on("accessDenied", function () {
+              console.log("accessDenied");
+            });
+
+            localStream.init(function () {
+              console.log("getUserMedia successfully");
+              localStream.play('agora_local');
+
+              client.publish(localStream, function (err) {
+                console.log("Publish local stream error: " + err);
+              });
+
+              client.on('stream-published', function (evt) {
+                console.log("Publish local stream successfully");
+              });
+            }, function (err) {
+              console.log("getUserMedia failed", err);
+            });
+          }
+        }, function (err) {
+          console.log("Join channel failed", err);
+        });
+      }, function (err) {
+        console.log("AgoraRTC client init failed", err);
+      });
+
+      channelKey = "";
+      client.on('error', function (err) {
+        console.log("Got error msg:", err.reason);
+        if (err.reason === 'DYNAMIC_KEY_TIMEOUT') {
+          client.renewChannelKey(channelKey, function () {
+            console.log("Renew channel key successfully");
+          }, function (err) {
+            console.log("Renew channel key failed: ", err);
+          });
+        }
+      });
+
+
+      client.on('stream-added', function (evt) {
+        var stream = evt.stream;
+        console.log("New stream added: " + stream.getId());
+        console.log("Subscribe ", stream);
+        client.subscribe(stream, function (err) {
+          console.log("Subscribe stream failed", err);
+        });
+      });
+
+      client.on('stream-subscribed', function (evt) {
+        var stream = evt.stream;
+        console.log("Subscribe remote stream successfully: " + stream.getId());
+        if ($('div#video #agora_remote' + stream.getId()).length === 0) {
+          $('div#video').append('<div id="agora_remote' + stream.getId() + '" style="float:left; width:810px;height:607px;display:inline-block;"></div>');
+        }
+        stream.play('agora_remote' + stream.getId());
+      });
+
+      client.on('stream-removed', function (evt) {
+        var stream = evt.stream;
+        stream.stop();
+        $('#agora_remote' + stream.getId()).remove();
+        console.log("Remote stream is removed " + stream.getId());
+      });
+
+      client.on('peer-leave', function (evt) {
+        var stream = evt.stream;
+        if (stream) {
+          stream.stop();
+          $('#agora_remote' + stream.getId()).remove();
+          console.log(evt.uid + " leaved from this channel");
+        }
+      });
+    }
+
+    function leave() {
+      document.getElementById("leave").disabled = true;
+      client.leave(function () {
+        console.log("Leavel channel successfully");
+      }, function (err) {
+        console.log("Leave channel failed");
+      });
+    }
+
+    function publish() {
+      document.getElementById("publish").disabled = true;
+      document.getElementById("unpublish").disabled = false;
+      client.publish(localStream, function (err) {
+        console.log("Publish local stream error: " + err);
+      });
+    }
+
+    function unpublish() {
+      document.getElementById("publish").disabled = false;
+      document.getElementById("unpublish").disabled = true;
+      client.unpublish(localStream, function (err) {
+        console.log("Unpublish local stream failed" + err);
+      });
+    }
+
+    function getDevices() {
+      AgoraRTC.getDevices(function (devices) {
+        for (var i = 0; i !== devices.length; ++i) {
+          var device = devices[i];
+          var option = document.createElement('option');
+          option.value = device.deviceId;
+          if (device.kind === 'audioinput') {
+            option.text = device.label || 'microphone ' + (audioSelect.length + 1);
+            audioSelect.appendChild(option);
+          } else if (device.kind === 'videoinput') {
+            option.text = device.label || 'camera ' + (videoSelect.length + 1);
+            videoSelect.appendChild(option);
+          } else {
+            console.log('Some other kind of source/device: ', device);
+          }
+        }
+      });
+    }
+
+    //audioSelect.onchange = getDevices;
+    //videoSelect.onchange = getDevices;
+    getDevices();
+  </script>
+</body>
+
 </html>
